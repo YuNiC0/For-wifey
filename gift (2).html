@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>For You</title>
+<style>
+  :root{
+    --blush:#fbe9ea;
+    --rose-deep:#b3324a;
+    --rose-mid:#e0637a;
+    --gold:#caa24a;
+    --ink:#3a2230;
+    --cream:#fff8f2;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background: radial-gradient(circle at 50% 20%, #fff3e9 0%, var(--blush) 55%, #f4d9dd 100%);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #stage{
+    position:relative;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .scene{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .6s ease;
+  }
+  .scene.active{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .eyebrow{
+    font-family: Georgia, serif;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-size:11px;
+    color: var(--rose-mid);
+    margin-bottom:6px;
+    opacity:.85;
+  }
+
+  .headline{
+    font-size:22px;
+    font-weight:400;
+    margin:0 0 28px;
+    text-align:center;
+    color: var(--ink);
+    padding:0 24px;
+  }
+  .headline em{
+    font-style:italic;
+    color:var(--rose-deep);
+  }
+
+  /* ---------- GIFT BOX ---------- */
+  #giftWrap{
+    position:relative;
+    width:220px;
+    height:220px;
+    cursor:pointer;
+    user-select:none;
+    touch-action: manipulation;
+  }
+
+  #giftSvg{
+    width:100%;
+    height:100%;
+    display:block;
+    filter: drop-shadow(0 18px 24px rgba(179,50,74,.18));
+    transition: transform .08s ease;
+  }
+
+  #giftWrap.shaking #giftSvg{
+    animation: shake .26s ease;
+  }
+  @keyframes shake{
+    0%{transform:translate(0,0) rotate(0);}
+    20%{transform:translate(-3px,1px) rotate(-2deg);}
+    40%{transform:translate(3px,-1px) rotate(2deg);}
+    60%{transform:translate(-2px,1px) rotate(-1.5deg);}
+    80%{transform:translate(2px,-1px) rotate(1.5deg);}
+    100%{transform:translate(0,0) rotate(0);}
+  }
+
+  .crack{
+    opacity:0;
+    transition:opacity .15s ease;
+  }
+
+  #tapCount{
+    margin-top:26px;
+    font-size:13px;
+    letter-spacing:.06em;
+    color: var(--rose-deep);
+    opacity:.8;
+  }
+
+  #progressTrack{
+    width:160px;
+    height:6px;
+    border-radius:6px;
+    background: rgba(179,50,74,.12);
+    margin-top:10px;
+    overflow:hidden;
+  }
+  #progressFill{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, var(--rose-mid), var(--rose-deep));
+    border-radius:6px;
+    transition: width .12s ease;
+  }
+
+  .hint{
+    margin-top:18px;
+    font-size:12px;
+    color:#8a5b66;
+    opacity:.75;
+    font-style:italic;
+  }
+
+  /* particles for the pop */
+  .confetti-layer{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    overflow:visible;
+  }
+  .bit{
+    position:absolute;
+    top:50%;
+    left:50%;
+    width:8px;
+    height:14px;
+    border-radius:2px;
+    opacity:0;
+  }
+
+  .flash{
+    position:fixed;
+    inset:0;
+    background: radial-gradient(circle at 50% 45%, #fff9f0 0%, rgba(255,249,240,0) 60%);
+    opacity:0;
+    pointer-events:none;
+  }
+  .flash.go{
+    animation: flashpop .5s ease-out;
+  }
+  @keyframes flashpop{
+    0%{opacity:0;}
+    15%{opacity:1;}
+    100%{opacity:0;}
+  }
+
+  /* ---------- ENVELOPE / CARD SCENE ---------- */
+  #cardArea{
+    position:relative;
+    width:280px;
+    height:340px;
+    transform: rotate(-2deg);
+  }
+
+  .polaroid{
+    position:relative;
+    width:280px;
+    height:340px;
+    background: #fdfaf5;
+    border-radius:3px;
+    padding:16px 16px 0 16px;
+    box-shadow:
+      0 22px 40px rgba(80,40,30,.22),
+      0 1px 0 rgba(255,255,255,.6) inset;
+  }
+
+  .photo-window{
+    position:relative;
+    width:248px;
+    height:248px;
+    border-radius:1px;
+    overflow:hidden;
+    background: var(--cardbg, linear-gradient(135deg,#e7c3c9,#f0d9b0));
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+  }
+
+  /* faint vintage film cast over the photo */
+  .photo-window::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,244,214,.25), transparent 60%),
+      linear-gradient(160deg, rgba(220,140,90,.10), rgba(60,30,50,.14));
+    mix-blend-mode: multiply;
+    pointer-events:none;
+  }
+
+  .caption{
+    position:relative;
+    width:100%;
+    height:76px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:6px 14px 0;
+  }
+  .caption .message{
+    font-family: 'Segoe Script', 'Bradley Hand', 'Comic Sans MS', cursive;
+    font-size:24px;
+    color: var(--rose-deep);
+    line-height:1.2;
+    transform: rotate(-1deg);
+  }
+  .caption .message .heart{
+    color: var(--rose-deep);
+  }
+
+  #scratchCanvas{
+    position:absolute;
+    top:0;
+    left:0;
+    width:280px;
+    height:340px;
+    border-radius:3px;
+    touch-action:none;
+    cursor: pointer;
+  }
+
+  #scratchLabel{
+    position:absolute;
+    top:0;
+    left:0;
+    width:280px;
+    height:340px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    font-size:13px;
+    letter-spacing:.04em;
+    color: rgba(255,255,255,.92);
+    text-shadow: 0 1px 3px rgba(0,0,0,.15);
+  }
+
+  #scratchHint{
+    margin-top:26px;
+    font-size:12px;
+    color:#8a5b66;
+    opacity:.8;
+  }
+
+  .footer-note{
+    margin-top:30px;
+    font-size:11px;
+    color:#a97a85;
+    opacity:.7;
+    letter-spacing:.05em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- SCENE 1: Tap to pop -->
+  <section class="scene active" id="scene-gift">
+    <div class="eyebrow">a little something</div>
+    <h1 class="headline">Tap the gift until it can't<br>hold it in <em>any longer.</em></h1>
+
+    <div id="giftWrap">
+      <div class="confetti-layer" id="confettiLayer"></div>
+
+      <svg id="giftSvg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+        <!-- shadow ellipse -->
+        <ellipse cx="110" cy="196" rx="62" ry="9" fill="#b3324a" opacity="0.10"/>
+
+        <!-- box base -->
+        <rect x="44" y="100" width="132" height="92" rx="6" fill="#b3324a"/>
+        <rect x="44" y="100" width="132" height="92" rx="6" fill="url(#boxshade)" opacity="0.25"/>
+
+        <!-- box lid -->
+        <rect x="36" y="78" width="148" height="30" rx="6" fill="#c83f5b"/>
+
+        <!-- vertical ribbon -->
+        <rect x="98" y="78" width="24" height="114" fill="#caa24a"/>
+        <!-- horizontal ribbon on lid -->
+        <rect x="36" y="86" width="148" height="14" fill="#e0637a" opacity="0"/>
+
+        <!-- bow -->
+        <g id="bow">
+          <path d="M110 78 C 92 58, 58 58, 60 80 C 62 92, 86 88, 110 78 Z" fill="#e3b65f"/>
+          <path d="M110 78 C 128 58, 162 58, 160 80 C 158 92, 134 88, 110 78 Z" fill="#e3b65f"/>
+          <circle cx="110" cy="78" r="9" fill="#caa24a"/>
+        </g>
+
+        <!-- cracks (revealed progressively) -->
+        <g stroke="#7a1d30" stroke-width="2" fill="none" stroke-linecap="round">
+          <path class="crack" id="crack1" d="M70 110 L78 128 L68 142"/>
+          <path class="crack" id="crack2" d="M150 112 L142 130 L154 146"/>
+          <path class="crack" id="crack3" d="M95 150 L105 165 L92 178"/>
+          <path class="crack" id="crack4" d="M130 152 L122 168 L138 180"/>
+          <path class="crack" id="crack5" d="M110 100 L110 130"/>
+        </g>
+
+        <defs>
+          <linearGradient id="boxshade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#000" stop-opacity="0"/>
+            <stop offset="1" stop-color="#000" stop-opacity="0.18"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <div id="progressTrack"><div id="progressFill"></div></div>
+    <div id="tapCount">0 taps</div>
+    <div class="hint">keep tapping…</div>
+  </section>
+
+  <!-- SCENE 2: Scratch card -->
+  <section class="scene" id="scene-card">
+    <div class="eyebrow">scratch to reveal</div>
+    <h1 class="headline">Use your finger<br>like a <em>little secret key.</em></h1>
+
+    <div id="cardArea">
+      <div class="polaroid" id="scratchcard">
+        <div class="photo-window"></div>
+        <div class="caption">
+          <div class="message">I love you <span class="heart">♥</span></div>
+        </div>
+      </div>
+      <canvas id="scratchCanvas" width="280" height="340"></canvas>
+      <div id="scratchLabel">✦ scratch here ✦</div>
+    </div>
+
+    <div id="scratchHint">scratch at least half to reveal it fully</div>
+  </section>
+
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+(function(){
+  // ============================================================
+  // 📸 PUT YOUR PHOTO HERE 📸
+  //
+  // Paste a photo URL or a base64 data string between the quotes below.
+  //
+  // Example with a URL:
+  //   const BACKGROUND_PHOTO_URL = "https://example.com/our-photo.jpg";
+  //
+  // Example with base64:
+  //   const BACKGROUND_PHOTO_URL = "data:image/jpeg;base64,/9j/4AAQSk...";
+  //
+  // This photo appears inside the polaroid frame, underneath the
+  // scratch foil, and is gradually revealed as it's scratched away.
+  // ============================================================
+  const BACKGROUND_PHOTO_URL = "";
+  // ============================================================
+
+  const scratchcard = document.getElementById('scratchcard');
+  if (BACKGROUND_PHOTO_URL) {
+    scratchcard.style.setProperty('--cardbg', `url("${BACKGROUND_PHOTO_URL}")`);
+  }
+
+  const giftWrap = document.getElementById('giftWrap');
+  const giftSvg = document.getElementById('giftSvg');
+  const progressFill = document.getElementById('progressFill');
+  const tapCount = document.getElementById('tapCount');
+  const hint = document.querySelector('#scene-gift .hint');
+  const confettiLayer = document.getElementById('confettiLayer');
+  const flash = document.getElementById('flash');
+  const sceneGift = document.getElementById('scene-gift');
+  const sceneCard = document.getElementById('scene-card');
+
+  const cracks = [
+    document.getElementById('crack1'),
+    document.getElementById('crack2'),
+    document.getElementById('crack3'),
+    document.getElementById('crack4'),
+    document.getElementById('crack5'),
+  ];
+
+  const NEEDED = 14; // total taps to "explode"
+  let taps = 0;
+  let popped = false;
+
+  const hints = [
+    'keep tapping…',
+    'it is wiggling…',
+    'almost there…',
+    'one more push…',
+    'here it comes…'
+  ];
+
+  function updateUI(){
+    const pct = Math.min(100, Math.round((taps / NEEDED) * 100));
+    progressFill.style.width = pct + '%';
+    tapCount.textContent = taps + (taps === 1 ? ' tap' : ' taps');
+
+    const crackThreshold = NEEDED / cracks.length;
+    cracks.forEach((c, i) => {
+      c.style.opacity = taps >= crackThreshold * (i + 1) ? '1' : '0';
+    });
+
+    const hintIdx = Math.min(hints.length - 1, Math.floor((taps / NEEDED) * hints.length));
+    hint.textContent = hints[hintIdx];
+  }
+
+  function scaleBump(){
+    giftSvg.style.transform = 'scale(0.94)';
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{ giftSvg.style.transform = 'scale(1)'; }, 70);
+    });
+  }
+
+  function spawnConfetti(){
+    const colors = ['#e0637a','#caa24a','#b3324a','#fbe9ea','#7a1d30'];
+    const count = 36;
+    for(let i=0;i<count;i++){
+      const bit = document.createElement('div');
+      bit.className = 'bit';
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      bit.style.background = color;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 90 + Math.random() * 140;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 40;
+      const rot = (Math.random() * 720 - 360);
+      bit.style.opacity = '1';
+      confettiLayer.appendChild(bit);
+
+      bit.animate([
+        { transform: 'translate(-50%,-50%) translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity: 0 }
+      ], {
+        duration: 900 + Math.random()*500,
+        easing: 'cubic-bezier(.2,.8,.2,1)'
+      });
+
+      setTimeout(()=> bit.remove(), 1500);
+    }
+  }
+
+  function pop(){
+    if(popped) return;
+    popped = true;
+
+    flash.classList.add('go');
+    spawnConfetti();
+    giftWrap.style.transform = 'scale(1.06)';
+    giftSvg.style.opacity = '0';
+    giftSvg.style.transform = 'scale(1.4)';
+    giftSvg.style.transition = 'opacity .35s ease, transform .35s ease';
+
+    setTimeout(()=>{
+      sceneGift.classList.remove('active');
+      sceneCard.classList.add('active');
+      initScratch();
+    }, 650);
+  }
+
+  function handleTap(e){
+    if(popped) return;
+    taps++;
+    scaleBump();
+    giftWrap.classList.remove('shaking');
+    requestAnimationFrame(()=>{ giftWrap.classList.add('shaking'); });
+    updateUI();
+    if(taps >= NEEDED){
+      pop();
+    }
+  }
+
+  giftWrap.addEventListener('click', handleTap);
+  giftWrap.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    handleTap(e);
+  }, { passive:false });
+
+  updateUI();
+
+  /* ---------------- SCRATCH CARD ---------------- */
+  function initScratch(){
+    const canvas = document.getElementById('scratchCanvas');
+    const ctx = canvas.getContext('2d');
+    const label = document.getElementById('scratchLabel');
+    const scratchHint = document.getElementById('scratchHint');
+
+    // Draw the scratch foil
+    function drawFoil(){
+      const grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+      grad.addColorStop(0,'#d9b35c');
+      grad.addColorStop(0.5,'#caa24a');
+      grad.addColorStop(1,'#b8893a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // subtle diagonal texture lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 2;
+      for(let x=-canvas.height; x<canvas.width; x+=10){
+        ctx.beginPath();
+        ctx.moveTo(x,0);
+        ctx.lineTo(x+canvas.height, canvas.height);
+        ctx.stroke();
+      }
+
+      // sparkle dots
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      for(let i=0;i<22;i++){
+        const x = Math.random()*canvas.width;
+        const y = Math.random()*canvas.height;
+        const r = Math.random()*1.4 + 0.3;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    drawFoil();
+
+    let isScratching = false;
+    let revealed = false;
+    let lastX = null, lastY = null;
+
+    function getPos(e){
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let clientX, clientY;
+      if(e.touches && e.touches.length){
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function scratchAt(x,y){
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(x,y,22,0,Math.PI*2);
+      ctx.fill();
+
+      if(lastX !== null){
+        ctx.lineWidth = 44;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(lastX,lastY);
+        ctx.lineTo(x,y);
+        ctx.stroke();
+      }
+      lastX = x; lastY = y;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function checkRevealPercent(){
+      const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+      let cleared = 0;
+      const total = canvas.width * canvas.height;
+      // sample every 8th pixel for performance
+      const step = 8;
+      let sampled = 0;
+      for(let i=3; i<data.length; i += 4*step){
+        sampled++;
+        if(data[i] < 40) cleared++;
+      }
+      return cleared / sampled;
+    }
+
+    function maybeAutoFinish(pct){
+      if(revealed) return;
+      if(pct > 0.55){
+        revealed = true;
+        label.style.opacity = '0';
+        scratchHint.textContent = 'there it is.';
+        // fade out remaining foil
+        canvas.style.transition = 'opacity .6s ease';
+        canvas.style.opacity = '0';
+        setTimeout(()=>{ canvas.style.pointerEvents = 'none'; }, 650);
+      }
+    }
+
+    function onMove(e){
+      if(!isScratching) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      scratchAt(pos.x, pos.y);
+      label.style.opacity = Math.max(0, parseFloat(label.style.opacity || 1) - 0.04);
+      const pct = checkRevealPercent();
+      maybeAutoFinish(pct);
+    }
+
+    function onStart(e){
+      isScratching = true;
+      lastX = null; lastY = null;
+      const pos = getPos(e);
+      scratchAt(pos.x, pos.y);
+    }
+
+    function onEnd(){
+      isScratching = false;
+      lastX = null; lastY = null;
+    }
+
+    canvas.addEventListener('mousedown', onStart);
+    canvas.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+
+    canvas.addEventListener('touchstart', onStart, { passive:false });
+    canvas.addEventListener('touchmove', onMove, { passive:false });
+    canvas.addEventListener('touchend', onEnd);
+  }
+})();
+</script>
+
+</body>
+</html>
